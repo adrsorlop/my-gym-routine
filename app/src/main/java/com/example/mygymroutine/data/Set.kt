@@ -1,4 +1,4 @@
-package com.example.mygymroutine
+package com.example.mygymroutine.data
 
 import kotlinx.serialization.Serializable
 
