@@ -1,33 +1,25 @@
 package com.example.mygymroutine
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -40,87 +32,119 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.mygymroutine.data.Exercise
 import com.example.mygymroutine.ui.theme.exercises
 import com.example.mygymroutine.ui.theme.weekRoutine
+import com.example.mygymroutine.data.Set
 
 @Composable
 fun CreateRoutineScreen(navController: NavController) {
+
+    val routineName = remember { mutableStateOf("") }
+    val selectedDays = remember {
+        mutableStateListOf<Boolean>().apply {
+            repeat(7) { add(false) }
+        }
+    }
+
+    val exercisesState = remember { mutableStateListOf<Exercise>() }
+
+
     Column(modifier = Modifier.padding(24.dp)) {
         Row(
             modifier = Modifier
                 .padding(top = 24.dp)
                 .fillMaxWidth()
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                OutlinedButton(
-                    onClick = { navController.navigate("days") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(end = 12.dp)
-                ) {
-                    Text(text = "Salir")
-                }
+
+            OutlinedButton(onClick = {
+                navController.navigate("days")
+
+            }, modifier = Modifier.weight(1f)) {
+                Text("Cancelar")
             }
-            Column(modifier = Modifier.weight(1f)) {
-                Button(
-                    onClick = { navController.navigate("days") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 12.dp)
-                ) {
-                    Text(text = "Listo")
+
+            Button(onClick = {
+
+                val createdExercises = exercisesState.toList()
+
+                val updatedWeek = weekRoutine.mapIndexed { index, day ->
+
+                    if (selectedDays[index]) {
+                        day.copy(
+                            routineName = routineName.value,
+                            exercises = createdExercises
+                        )
+                    } else {
+                        day
+                    }
                 }
+
+                weekRoutine = updatedWeek
+
+                navController.navigate("days")
+
+            }, modifier = Modifier.weight(1f)) {
+                Text("Listo")
             }
+
         }
         HorizontalDivider(
             thickness = 2.dp,
             modifier = Modifier.padding(top = 24.dp)
         )
         OutlinedTextField(
-            state = rememberTextFieldState(),
-            label = { Text("Nombre de la rutina") }
+            value = routineName.value,
+            onValueChange = { routineName.value = it },
+            label = { Text("Nombre de la rutina") },
+            modifier = Modifier.fillMaxWidth()
         )
         HorizontalDivider(
             thickness = 2.dp,
             modifier = Modifier.padding(top = 24.dp)
         )
-        DaySelector()
+        DaySelector(
+            selectedDays = selectedDays,
+            onDayChange = { index, value ->
+                selectedDays[index] = value
+            }
+        )
         HorizontalDivider(
             thickness = 2.dp,
             modifier = Modifier.padding(bottom = 24.dp)
         )
-        ExerciseSelector()
+        ExerciseSelector(
+            exercises = exercisesState,
+            onUpdate = { newList ->
+                exercisesState.clear()
+                exercisesState.addAll(newList)
+            }
+        )
     }
 }
 
 @Composable
-fun DaySelector() {
+fun DaySelector(
+    selectedDays: List<Boolean>,
+    onDayChange: (Int, Boolean) -> Unit
+) {
     val maxPerColumn = 4
-    val states = remember {
-        mutableStateListOf(*Array(weekRoutine.size) { false })
-    }
 
     Row(modifier = Modifier.padding(24.dp)) {
-
-        val columns = (weekRoutine.size + maxPerColumn - 1) / maxPerColumn
+        val columns = (selectedDays.size + maxPerColumn - 1) / maxPerColumn
 
         repeat(columns) { colIndex ->
-
             Column(modifier = Modifier.padding(end = 16.dp)) {
-
                 for (rowIndex in 0 until maxPerColumn) {
-
                     val realIndex = colIndex * maxPerColumn + rowIndex
-
-                    if (realIndex < weekRoutine.size) {
+                    if (realIndex < selectedDays.size) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
-                                checked = states[realIndex],
-                                onCheckedChange = { states[realIndex] = it }
+                                checked = selectedDays[realIndex],
+                                onCheckedChange = { onDayChange(realIndex, it) }
                             )
                             Text(weekRoutine[realIndex].dayName)
                         }
@@ -132,80 +156,63 @@ fun DaySelector() {
 }
 
 @Composable
-fun ExerciseSelector() {
-
-    var rows by remember { mutableStateOf(listOf<String>()) }
-
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
+fun ExerciseSelector(
+    exercises: List<Exercise>,
+    onUpdate: (List<Exercise>) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
 
         LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
+            modifier = Modifier.weight(1f)
         ) {
-            items(rows) { row ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                ) {
-                    ExerciseRow(
-                        row = row,
-                        onDelete = { toDelete ->
-                            rows = rows.filter { it != toDelete }
-                        }
-                    )
-                }
+            itemsIndexed(exercises) { index, exercise ->
+                ExerciseRow(
+                    exercise = exercise,
+                    onUpdate = { updated ->
+                        val newList = exercises.toMutableList()
+                        newList[index] = updated
+                        onUpdate(newList)
+                    },
+                    onDelete = {
+                        val newList = exercises.toMutableList()
+                        newList.removeAt(index)
+                        onUpdate(newList)
+                    }
+                )
             }
         }
 
         Button(onClick = {
-            rows = rows + "Nueva fila ${rows.size + 1}"
+            onUpdate(exercises + Exercise(name = "", sets = emptyList(), coolDown = 0))
         }) {
             Text("Agregar ejercicio")
         }
     }
 }
 
+
 @Composable
 fun ExerciseRow(
-    row: String,
-    onDelete: (String) -> Unit
+    exercise: Exercise,
+    onUpdate: (Exercise) -> Unit,
+    onDelete: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedExercise by remember { mutableStateOf("") }
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
+
             Row(modifier = Modifier.fillMaxWidth()) {
                 IconButton(onClick = { expanded = !expanded }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Select exercise",
-                        modifier = Modifier
-                            .size(24.dp)
-                            .align(Alignment.CenterVertically)
-                            .weight(1f),
-                        tint = Color.Black
-                    )
+                    Icon(Icons.Default.MoreVert, contentDescription = null)
                 }
-                Text(
-                    modifier = Modifier.align(Alignment.CenterVertically),
-                    text = selectedExercise,
-                    fontSize = 18.sp
-                )
+
+                Text(exercise.name, fontSize = 18.sp)
+
                 Spacer(modifier = Modifier.weight(1f))
-                IconButton(
-                    onClick = { onDelete(row) },
-                    modifier = Modifier.align(Alignment.CenterVertically)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = Color.Red
-                    )
+
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red)
                 }
             }
 
@@ -213,96 +220,67 @@ fun ExerciseRow(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                exercises.forEach { exercise ->
+                exercises.forEach { name ->
                     DropdownMenuItem(
-                        text = { Text(exercise) },
+                        text = { Text(name) },
                         onClick = {
-                            selectedExercise = exercise
+                            onUpdate(exercise.copy(name = name))
                             expanded = false
                         }
                     )
                 }
             }
 
-            if (selectedExercise.isNotEmpty()) {
-
-                var sets by remember { mutableStateOf(List(1) { it + 1 }) }
-
-                HorizontalDivider(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp, bottom = 4.dp)
+            exercise.sets.forEachIndexed { index, set ->
+                SetRow(
+                    set = set,
+                    onUpdate = { updated ->
+                        val newSets = exercise.sets.toMutableList()
+                        newSets[index] = updated
+                        onUpdate(exercise.copy(sets = newSets))
+                    },
+                    onDelete = {
+                        val newSets = exercise.sets.toMutableList()
+                        newSets.removeAt(index)
+                        onUpdate(exercise.copy(sets = newSets))
+                    }
                 )
+            }
 
-                FlowRow(
-                    maxItemsInEachRow = 1,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    sets.forEachIndexed { index, _ ->
-                        Card(
-                            modifier = Modifier
-                                .padding(4.dp)
-                                .fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
-                        ) {
-                            Row(modifier = Modifier.padding(8.dp)) {
-
-                                OutlinedTextField(
-                                    state = rememberTextFieldState(),
-                                    label = { Text("Reps") },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                                )
-
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Remove set",
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .align(Alignment.CenterVertically)
-                                        .weight(1f),
-                                    tint = Color.Black
-                                )
-
-                                OutlinedTextField(
-                                    state = rememberTextFieldState(),
-                                    label = { Text("Peso") },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                                )
-
-                                IconButton(
-                                    onClick = {
-                                        sets = sets.toMutableList().also { it.removeAt(index) }
-                                    },
-                                    enabled = sets.size > 1,
-                                    modifier = Modifier.align(Alignment.CenterVertically)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Remove set",
-                                        modifier = Modifier.size(16.dp),
-                                        tint = if (sets.size > 1) Color.Red else Color.Gray
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    IconButton(onClick = {
-                        sets = sets + (sets.size + 1)
-                    }) {
-                        Icon(Icons.Default.Add, contentDescription = "Add")
-                    }
-                }
+            IconButton(onClick = {
+                onUpdate(exercise.copy(sets = exercise.sets + Set(reps = 0, weight = 0)))
+            }) {
+                Icon(Icons.Default.Add, contentDescription = "Add set")
             }
         }
     }
 }
+
+@Composable
+fun SetRow(
+    set: Set,
+    onUpdate: (Set) -> Unit,
+    onDelete: () -> Unit
+) {
+    Row(modifier = Modifier.padding(8.dp)) {
+
+        OutlinedTextField(
+            value = set.reps.toString(),
+            onValueChange = { onUpdate(set.copy(reps = it.toIntOrNull() ?: 0)) },
+            label = { Text("Reps") },
+            modifier = Modifier.weight(1f)
+        )
+
+        OutlinedTextField(
+            value = set.weight.toString(),
+            onValueChange = { onUpdate(set.copy(weight = (it.toFloatOrNull() ?: 0f).toInt())) },
+            label = { Text("Peso") },
+            modifier = Modifier.weight(1f)
+        )
+
+        IconButton(onClick = onDelete) {
+            Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red)
+        }
+    }
+}
+

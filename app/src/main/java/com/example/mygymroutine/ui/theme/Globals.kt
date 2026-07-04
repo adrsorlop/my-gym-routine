@@ -4,7 +4,7 @@ import com.example.mygymroutine.data.Exercise
 import com.example.mygymroutine.data.Set
 import com.example.mygymroutine.data.TrainingDay
 
-val weekRoutine = listOf(
+var weekRoutine = listOf(
     TrainingDay(
         dayName = "Monday"
     ),
