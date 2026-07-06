@@ -1,5 +1,6 @@
 package com.example.mygymroutine
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,11 +26,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.mygymroutine.data.TrainingDay
-import com.example.mygymroutine.ui.theme.weekRoutine
+import com.example.mygymroutine.data.weekRoutine
+import kotlinx.serialization.json.Json
 import java.time.LocalDate
 
 class MainActivity : ComponentActivity() {
@@ -57,16 +61,39 @@ class MainActivity : ComponentActivity() {
 
             composable("detail/{day}") { backStackEntry ->
                 val day = backStackEntry.arguments?.getString("day") ?: ""
-                DetailScreen(weekRoutine.find { it.dayName == day } ?: TrainingDay(
+                DetailScreen(
+                    day = weekRoutine.find { it.dayName == day } ?: TrainingDay(
                     "",
                     "",
                     emptyList(),
-                ))
+                ),
+                    navController = navController
+                )
             }
 
-            composable("createRoutine") {
-                CreateRoutineScreen(navController)
+            composable(
+                route = "createRoutine?day={day}",
+                arguments = listOf(
+                    navArgument("day") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                        nullable = true
+                    }
+                )
+            ) { backStackEntry ->
+                val encoded = backStackEntry.arguments?.getString("day")
+
+                val day: TrainingDay? =
+                    if (encoded.isNullOrEmpty()) {
+                        null
+                    } else {
+                        val json = Uri.decode(encoded)
+                        Json.decodeFromString<TrainingDay>(json)
+                    }
+
+                CreateRoutineScreen(navController, day)
             }
+
         }
     }
 

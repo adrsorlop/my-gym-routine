@@ -10,20 +10,24 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MultiChoiceSegmentedButtonRow
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,12 +40,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.mygymroutine.data.Exercise
-import com.example.mygymroutine.ui.theme.exercises
-import com.example.mygymroutine.ui.theme.weekRoutine
 import com.example.mygymroutine.data.Set
+import com.example.mygymroutine.data.TrainingDay
+import com.example.mygymroutine.data.exercises
+import com.example.mygymroutine.data.weekRoutine
 
 @Composable
-fun CreateRoutineScreen(navController: NavController) {
+fun CreateRoutineScreen(navController: NavController, trainingDay: TrainingDay?) {
 
     val routineName = remember { mutableStateOf("") }
     val selectedDays = remember {
@@ -49,8 +54,22 @@ fun CreateRoutineScreen(navController: NavController) {
             repeat(7) { add(false) }
         }
     }
-
     val exercisesState = remember { mutableStateListOf<Exercise>() }
+
+    LaunchedEffect(trainingDay) {
+        if (trainingDay != null) {
+            routineName.value = trainingDay.routineName
+
+            weekRoutine.forEachIndexed { index, day ->
+                if (day.dayName == trainingDay.dayName) {
+                    selectedDays[index] = true
+                }
+            }
+
+            exercisesState.clear()
+            exercisesState.addAll(trainingDay.exercises)
+        }
+    }
 
 
     Column(modifier = Modifier.padding(24.dp)) {
@@ -62,7 +81,6 @@ fun CreateRoutineScreen(navController: NavController) {
 
             OutlinedButton(onClick = {
                 navController.navigate("days")
-
             }, modifier = Modifier.weight(1f)) {
                 Text("Cancelar")
             }
@@ -94,7 +112,7 @@ fun CreateRoutineScreen(navController: NavController) {
         }
         HorizontalDivider(
             thickness = 2.dp,
-            modifier = Modifier.padding(top = 24.dp)
+            modifier = Modifier.padding(top = 24.dp, bottom = 18.dp)
         )
         OutlinedTextField(
             value = routineName.value,
@@ -102,21 +120,24 @@ fun CreateRoutineScreen(navController: NavController) {
             label = { Text("Nombre de la rutina") },
             modifier = Modifier.fillMaxWidth()
         )
+        if (trainingDay == null){
+            HorizontalDivider(
+                thickness = 2.dp,
+                modifier = Modifier.padding(top = 24.dp)
+            )
+            Text("Selecciona los días: ", fontSize = 18.sp, modifier = Modifier.padding(top = 24.dp))
+            DaySelector(
+                selectedDays = selectedDays,
+                onDayChange = { index, value ->
+                    selectedDays[index] = value
+                }
+            )
+        }
         HorizontalDivider(
-            thickness = 2.dp,
-            modifier = Modifier.padding(top = 24.dp)
+            thickness = 2.dp
         )
-        DaySelector(
-            selectedDays = selectedDays,
-            onDayChange = { index, value ->
-                selectedDays[index] = value
-            }
-        )
-        HorizontalDivider(
-            thickness = 2.dp,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-        ExerciseSelector(
+        Text("Ejercicios: ", fontSize = 18.sp, modifier = Modifier.padding(top = 24.dp))
+        Exercises(
             exercises = exercisesState,
             onUpdate = { newList ->
                 exercisesState.clear()
@@ -131,54 +152,51 @@ fun DaySelector(
     selectedDays: List<Boolean>,
     onDayChange: (Int, Boolean) -> Unit
 ) {
-    val maxPerColumn = 4
 
-    Row(modifier = Modifier.padding(24.dp)) {
-        val columns = (selectedDays.size + maxPerColumn - 1) / maxPerColumn
-
-        repeat(columns) { colIndex ->
-            Column(modifier = Modifier.padding(end = 16.dp)) {
-                for (rowIndex in 0 until maxPerColumn) {
-                    val realIndex = colIndex * maxPerColumn + rowIndex
-                    if (realIndex < selectedDays.size) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = selectedDays[realIndex],
-                                onCheckedChange = { onDayChange(realIndex, it) }
-                            )
-                            Text(weekRoutine[realIndex].dayName)
-                        }
-                    }
-                }
-            }
+    MultiChoiceSegmentedButtonRow(modifier = Modifier.padding(top = 24.dp, bottom = 24.dp)) {
+        repeat(7) { index ->
+            SegmentedButton(
+                onCheckedChange = { onDayChange(index, !selectedDays[index]) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = selectedDays.size),
+                checked = selectedDays[index],
+                icon = { SegmentedButtonDefaults.Icon(selectedDays[index]) },
+                label = { Text(weekRoutine[index].dayName[0].toString()) }
+            )
         }
     }
 }
 
 @Composable
-fun ExerciseSelector(
+fun Exercises(
     exercises: List<Exercise>,
     onUpdate: (List<Exercise>) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-
         LazyColumn(
             modifier = Modifier.weight(1f)
         ) {
-            itemsIndexed(exercises) { index, exercise ->
-                ExerciseRow(
-                    exercise = exercise,
-                    onUpdate = { updated ->
-                        val newList = exercises.toMutableList()
-                        newList[index] = updated
-                        onUpdate(newList)
-                    },
-                    onDelete = {
-                        val newList = exercises.toMutableList()
-                        newList.removeAt(index)
-                        onUpdate(newList)
-                    }
-                )
+
+            if (exercises.isNotEmpty()){
+                itemsIndexed(exercises) { index, exercise ->
+                    ExerciseCard(
+                        exercise = exercise,
+                        onUpdate = { updated ->
+                            val newList = exercises.toMutableList()
+                            newList[index] = updated
+                            onUpdate(newList)
+                        },
+                        onDelete = {
+                            val newList = exercises.toMutableList()
+                            newList.removeAt(index)
+                            onUpdate(newList)
+                        }
+                    )
+                }
+            }
+            else{
+                item {
+                    Text("No hay ejercicios programados", fontSize = 18.sp, modifier = Modifier.padding(top = 24.dp))
+                }
             }
         }
 
@@ -192,14 +210,16 @@ fun ExerciseSelector(
 
 
 @Composable
-fun ExerciseRow(
+fun ExerciseCard(
     exercise: Exercise,
     onUpdate: (Exercise) -> Unit,
     onDelete: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = Modifier
+        .fillMaxWidth()
+        .padding(top = 12.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
 
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -207,7 +227,13 @@ fun ExerciseRow(
                     Icon(Icons.Default.MoreVert, contentDescription = null)
                 }
 
-                Text(exercise.name, fontSize = 18.sp)
+                Text(
+                    exercise.name,
+                    fontSize = 18.sp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .align(Alignment.CenterVertically)
+                )
 
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -224,15 +250,25 @@ fun ExerciseRow(
                     DropdownMenuItem(
                         text = { Text(name) },
                         onClick = {
-                            onUpdate(exercise.copy(name = name))
+                            onUpdate(
+                                exercise.copy(
+                                    name = name,
+                                    sets = listOf(Set(reps = 0, weight = 0))
+                                )
+                            )
                             expanded = false
                         }
                     )
                 }
             }
 
+            HorizontalDivider(
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .fillMaxWidth()
+            )
             exercise.sets.forEachIndexed { index, set ->
-                SetRow(
+                ExerciseSet(
                     set = set,
                     onUpdate = { updated ->
                         val newSets = exercise.sets.toMutableList()
@@ -243,24 +279,42 @@ fun ExerciseRow(
                         val newSets = exercise.sets.toMutableList()
                         newSets.removeAt(index)
                         onUpdate(exercise.copy(sets = newSets))
-                    }
+                    }, exercise.sets.size
                 )
             }
 
-            IconButton(onClick = {
-                onUpdate(exercise.copy(sets = exercise.sets + Set(reps = 0, weight = 0)))
-            }) {
-                Icon(Icons.Default.Add, contentDescription = "Add set")
+            if (exercise.name != "") {
+                IconButton(onClick = {
+                    onUpdate(exercise.copy(sets = exercise.sets + Set(reps = 0, weight = 0)))
+                }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add set")
+                }
+
+                HorizontalDivider(
+                    modifier = Modifier
+                        .padding(vertical = 8.dp)
+                        .fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = exercise.coolDown.toString(),
+                    onValueChange = { onUpdate(exercise.copy(coolDown = it.toIntOrNull() ?: 0)) },
+                    label = { Text("Descanso (segundos)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
+
+
         }
     }
 }
 
 @Composable
-fun SetRow(
+fun ExerciseSet(
     set: Set,
     onUpdate: (Set) -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    setsNumber: Int
 ) {
     Row(modifier = Modifier.padding(8.dp)) {
 
@@ -277,9 +331,16 @@ fun SetRow(
             label = { Text("Peso") },
             modifier = Modifier.weight(1f)
         )
-
-        IconButton(onClick = onDelete) {
-            Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red)
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier.align(Alignment.CenterVertically),
+            enabled = setsNumber > 1
+        ) {
+            Icon(
+                Icons.Default.Close,
+                contentDescription = null,
+                tint = if (setsNumber > 1) Color.Red else Color.Gray
+            )
         }
     }
 }

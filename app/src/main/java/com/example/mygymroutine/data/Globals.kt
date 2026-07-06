@@ -1,8 +1,4 @@
-package com.example.mygymroutine.ui.theme
-
-import com.example.mygymroutine.data.Exercise
-import com.example.mygymroutine.data.Set
-import com.example.mygymroutine.data.TrainingDay
+package com.example.mygymroutine.data
 
 var weekRoutine = listOf(
     TrainingDay(
