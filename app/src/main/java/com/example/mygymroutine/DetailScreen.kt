@@ -8,15 +8,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Balance
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.Score
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -29,18 +23,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.mygymroutine.data.Exercise
 import com.example.mygymroutine.data.TrainingDay
-import com.example.mygymroutine.data.weekRoutine
+import com.example.mygymroutine.data.WeekRoutineRepository
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 @Composable
 fun DetailScreen(day: TrainingDay, navController: NavController) {
+
+    val context = LocalContext.current
+
+    val vm = viewModel<RoutineViewModel>(
+        factory = RoutineViewModelFactory(
+            WeekRoutineRepository(context)
+        )
+    )
+
     Column(
         modifier = Modifier
             .padding(24.dp)
@@ -65,7 +70,11 @@ fun DetailScreen(day: TrainingDay, navController: NavController) {
         Row(modifier = Modifier.fillMaxWidth()) {
             IconButton(
                 onClick = {
-                    weekRoutine = weekRoutine.filter { it.dayName != day.dayName }
+                    vm.saveTrainingDay(TrainingDay(
+                        dayName = day.dayName,
+                        routineName = "",
+                        exercises = emptyList()
+                    ))
                     navController.navigate("days")
                 },
                 modifier = Modifier.weight(0.5f)

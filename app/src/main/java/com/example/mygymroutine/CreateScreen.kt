@@ -28,6 +28,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,17 +37,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.mygymroutine.data.Exercise
 import com.example.mygymroutine.data.Set
 import com.example.mygymroutine.data.TrainingDay
+import com.example.mygymroutine.data.WeekRoutineRepository
+import com.example.mygymroutine.data.defaultWeekRoutine
 import com.example.mygymroutine.data.exercises
-import com.example.mygymroutine.data.weekRoutine
 
 @Composable
 fun CreateRoutineScreen(navController: NavController, trainingDay: TrainingDay?) {
+
+    val context = LocalContext.current
+
+    val vm = viewModel<RoutineViewModel>(
+        factory = RoutineViewModelFactory(
+            WeekRoutineRepository(context)
+        )
+    )
+
+    val weekRoutine by vm.weekRoutine.collectAsState()
 
     val routineName = remember { mutableStateOf("") }
     val selectedDays = remember {
@@ -90,7 +104,6 @@ fun CreateRoutineScreen(navController: NavController, trainingDay: TrainingDay?)
                 val createdExercises = exercisesState.toList()
 
                 val updatedWeek = weekRoutine.mapIndexed { index, day ->
-
                     if (selectedDays[index]) {
                         day.copy(
                             routineName = routineName.value,
@@ -101,7 +114,7 @@ fun CreateRoutineScreen(navController: NavController, trainingDay: TrainingDay?)
                     }
                 }
 
-                weekRoutine = updatedWeek
+                vm.saveWeekRoutine(updatedWeek)
 
                 navController.navigate("days")
 
@@ -120,12 +133,16 @@ fun CreateRoutineScreen(navController: NavController, trainingDay: TrainingDay?)
             label = { Text("Nombre de la rutina") },
             modifier = Modifier.fillMaxWidth()
         )
-        if (trainingDay == null){
+        if (trainingDay == null) {
             HorizontalDivider(
                 thickness = 2.dp,
                 modifier = Modifier.padding(top = 24.dp)
             )
-            Text("Selecciona los días: ", fontSize = 18.sp, modifier = Modifier.padding(top = 24.dp))
+            Text(
+                "Selecciona los días: ",
+                fontSize = 18.sp,
+                modifier = Modifier.padding(top = 24.dp)
+            )
             DaySelector(
                 selectedDays = selectedDays,
                 onDayChange = { index, value ->
@@ -153,6 +170,16 @@ fun DaySelector(
     onDayChange: (Int, Boolean) -> Unit
 ) {
 
+    val context = LocalContext.current
+
+    val vm = viewModel<RoutineViewModel>(
+        factory = RoutineViewModelFactory(
+            WeekRoutineRepository(context)
+        )
+    )
+
+    val weekRoutine by vm.weekRoutine.collectAsState()
+
     MultiChoiceSegmentedButtonRow(modifier = Modifier.padding(top = 24.dp, bottom = 24.dp)) {
         repeat(7) { index ->
             SegmentedButton(
@@ -176,7 +203,7 @@ fun Exercises(
             modifier = Modifier.weight(1f)
         ) {
 
-            if (exercises.isNotEmpty()){
+            if (exercises.isNotEmpty()) {
                 itemsIndexed(exercises) { index, exercise ->
                     ExerciseCard(
                         exercise = exercise,
@@ -192,10 +219,13 @@ fun Exercises(
                         }
                     )
                 }
-            }
-            else{
+            } else {
                 item {
-                    Text("No hay ejercicios programados", fontSize = 18.sp, modifier = Modifier.padding(top = 24.dp))
+                    Text(
+                        "No hay ejercicios programados",
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(top = 24.dp)
+                    )
                 }
             }
         }
@@ -217,9 +247,11 @@ fun ExerciseCard(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    Card(modifier = Modifier
-        .fillMaxWidth()
-        .padding(top = 12.dp)) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp)
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
             Row(modifier = Modifier.fillMaxWidth()) {

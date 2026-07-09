@@ -22,9 +22,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -32,7 +36,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.mygymroutine.data.TrainingDay
-import com.example.mygymroutine.data.weekRoutine
+import com.example.mygymroutine.data.WeekRoutineRepository
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 
@@ -50,6 +54,16 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun AppNavigation() {
         val navController = rememberNavController()
+
+        val context = LocalContext.current
+
+        val vm = viewModel<RoutineViewModel>(
+            factory = RoutineViewModelFactory(
+                WeekRoutineRepository(context)
+            )
+        )
+
+        val weekRoutine by vm.weekRoutine.collectAsState()
 
         NavHost(
             navController = navController,
@@ -102,6 +116,16 @@ class MainActivity : ComponentActivity() {
 
         val today = LocalDate.now().dayOfWeek.name
         val todayFormatted = today.lowercase().replaceFirstChar { it.uppercase() }
+
+        val context = LocalContext.current
+
+        val vm = viewModel<RoutineViewModel>(
+            factory = RoutineViewModelFactory(
+                WeekRoutineRepository(context)
+            )
+        )
+
+        val weekRoutine by vm.weekRoutine.collectAsState()
 
         Column(
             modifier = Modifier

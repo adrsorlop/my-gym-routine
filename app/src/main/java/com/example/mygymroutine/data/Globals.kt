@@ -1,55 +1,11 @@
 package com.example.mygymroutine.data
 
-var weekRoutine = listOf(
+var defaultWeekRoutine = listOf(
     TrainingDay(
         dayName = "Monday"
     ),
     TrainingDay(
-        dayName = "Tuesday",
-        routineName = "Día de pierna",
-        exercises = listOf(
-            Exercise(
-                name = "Sentadillas",
-                sets = listOf(
-                    Set(
-                        reps = 12,
-                        weight = 80
-                    ),
-                    Set(
-                        reps = 10,
-                        weight = 80
-                    ),
-                    Set(
-                        reps = 8,
-                        weight = 60
-                    ),
-                    Set(
-                        reps = 8,
-                        weight = 60
-                    ),
-                ),
-                coolDown = 90
-            ),
-            Exercise(
-                name = "Curl femoral",
-                sets = listOf(
-                    Set(
-                        reps = 12,
-                        weight = 60
-                    ),
-                    Set(
-                        reps = 10,
-                        weight = 60
-                    ),
-                    Set(
-                        reps = 8,
-                        weight = 50
-                    )
-                ),
-                coolDown = 60
-            ),
-        )
-
+        dayName = "Tuesday"
     ),
     TrainingDay(
         dayName = "Wednesday"
