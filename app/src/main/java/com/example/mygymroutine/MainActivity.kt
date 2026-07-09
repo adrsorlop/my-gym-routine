@@ -37,6 +37,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.mygymroutine.data.TrainingDay
 import com.example.mygymroutine.data.WeekRoutineRepository
+import com.example.mygymroutine.viewmodel.RoutineViewModel
+import com.example.mygymroutine.viewmodel.RoutineViewModelFactory
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 
@@ -86,26 +88,41 @@ class MainActivity : ComponentActivity() {
             }
 
             composable(
-                route = "createRoutine?day={day}",
+                route = "createRoutine?day={day}&selected={selected}",
                 arguments = listOf(
                     navArgument("day") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                        nullable = true
+                    },
+                    navArgument("selected") {
                         type = NavType.StringType
                         defaultValue = ""
                         nullable = true
                     }
                 )
             ) { backStackEntry ->
+
                 val encoded = backStackEntry.arguments?.getString("day")
-
                 val day: TrainingDay? =
-                    if (encoded.isNullOrEmpty()) {
-                        null
-                    } else {
-                        val json = Uri.decode(encoded)
-                        Json.decodeFromString<TrainingDay>(json)
-                    }
+                    if (encoded.isNullOrEmpty()) null
+                    else Json.decodeFromString(Uri.decode(encoded))
 
-                CreateRoutineScreen(navController, day)
+                val selectedRaw = backStackEntry.arguments?.getString("selected") ?: ""
+                val selectedExercises =
+                    if (selectedRaw.isBlank()) emptyList()
+                    else selectedRaw.split(",")
+
+
+                CreateRoutineScreen(navController, day, selectedExercises)
+            }
+
+
+            composable("createRoutine/exercises?added={added}") { backStackEntry ->
+                val addedRaw = backStackEntry.arguments?.getString("added") ?: ""
+                val alreadyAdded = if (addedRaw.isEmpty()) emptyList() else addedRaw.split(",")
+
+                ExercisesScreen(navController, alreadyAdded)
             }
 
         }

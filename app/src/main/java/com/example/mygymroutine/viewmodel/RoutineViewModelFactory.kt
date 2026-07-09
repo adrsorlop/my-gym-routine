@@ -1,4 +1,4 @@
-package com.example.mygymroutine
+package com.example.mygymroutine.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider

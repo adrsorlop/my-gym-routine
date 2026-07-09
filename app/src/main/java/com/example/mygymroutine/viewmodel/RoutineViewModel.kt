@@ -1,10 +1,12 @@
-package com.example.mygymroutine
+package com.example.mygymroutine.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mygymroutine.data.Exercise
 import com.example.mygymroutine.data.TrainingDay
 import com.example.mygymroutine.data.WeekRoutineRepository
 import com.example.mygymroutine.data.defaultWeekRoutine
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch

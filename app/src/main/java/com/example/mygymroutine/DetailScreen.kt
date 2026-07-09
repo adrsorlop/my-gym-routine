@@ -32,6 +32,8 @@ import androidx.navigation.NavController
 import com.example.mygymroutine.data.Exercise
 import com.example.mygymroutine.data.TrainingDay
 import com.example.mygymroutine.data.WeekRoutineRepository
+import com.example.mygymroutine.viewmodel.RoutineViewModel
+import com.example.mygymroutine.viewmodel.RoutineViewModelFactory
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 

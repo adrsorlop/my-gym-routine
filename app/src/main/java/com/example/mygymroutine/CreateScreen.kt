@@ -12,11 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,7 +30,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,11 +42,15 @@ import com.example.mygymroutine.data.Exercise
 import com.example.mygymroutine.data.Set
 import com.example.mygymroutine.data.TrainingDay
 import com.example.mygymroutine.data.WeekRoutineRepository
-import com.example.mygymroutine.data.defaultWeekRoutine
-import com.example.mygymroutine.data.exercises
+import com.example.mygymroutine.viewmodel.RoutineViewModel
+import com.example.mygymroutine.viewmodel.RoutineViewModelFactory
 
 @Composable
-fun CreateRoutineScreen(navController: NavController, trainingDay: TrainingDay?) {
+fun CreateRoutineScreen(
+    navController: NavController,
+    trainingDay: TrainingDay?,
+    selectedExercises: List<String>
+) {
 
     val context = LocalContext.current
 
@@ -79,12 +79,27 @@ fun CreateRoutineScreen(navController: NavController, trainingDay: TrainingDay?)
                     selectedDays[index] = true
                 }
             }
+        }
 
-            exercisesState.clear()
-            exercisesState.addAll(trainingDay.exercises)
+        if (trainingDay != null) {
+            trainingDay.exercises.forEach {
+                exercisesState.add(it)
+            }
+        } else {
+            selectedExercises.forEachIndexed { index, string ->
+                exercisesState.add(
+                    Exercise(
+                        string, sets = listOf(
+                            Set(
+                                reps = 0,
+                                weight = 0
+                            )
+                        )
+                    )
+                )
+            }
         }
     }
-
 
     Column(modifier = Modifier.padding(24.dp)) {
         Row(
@@ -99,26 +114,29 @@ fun CreateRoutineScreen(navController: NavController, trainingDay: TrainingDay?)
                 Text("Cancelar")
             }
 
-            Button(onClick = {
+            Button(
+                onClick = {
 
-                val createdExercises = exercisesState.toList()
+                    val createdExercises = exercisesState.toList()
 
-                val updatedWeek = weekRoutine.mapIndexed { index, day ->
-                    if (selectedDays[index]) {
-                        day.copy(
-                            routineName = routineName.value,
-                            exercises = createdExercises
-                        )
-                    } else {
-                        day
+                    val updatedWeek = weekRoutine.mapIndexed { index, day ->
+                        if (selectedDays[index]) {
+                            day.copy(
+                                routineName = routineName.value,
+                                exercises = createdExercises
+                            )
+                        } else {
+                            day
+                        }
                     }
-                }
 
-                vm.saveWeekRoutine(updatedWeek)
+                    vm.saveWeekRoutine(updatedWeek)
 
-                navController.navigate("days")
+                    navController.navigate("days")
 
-            }, modifier = Modifier.weight(1f)) {
+                }, modifier = Modifier.weight(1f),
+                enabled = if (selectedDays.contains(true))  routineName.value != "" && exercisesState.isNotEmpty() else false
+            ) {
                 Text("Listo")
             }
 
@@ -159,7 +177,8 @@ fun CreateRoutineScreen(navController: NavController, trainingDay: TrainingDay?)
             onUpdate = { newList ->
                 exercisesState.clear()
                 exercisesState.addAll(newList)
-            }
+            },
+            navController = navController
         )
     }
 }
@@ -196,6 +215,7 @@ fun DaySelector(
 @Composable
 fun Exercises(
     exercises: List<Exercise>,
+    navController: NavController,
     onUpdate: (List<Exercise>) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -231,9 +251,17 @@ fun Exercises(
         }
 
         Button(onClick = {
-            onUpdate(exercises + Exercise(name = "", sets = emptyList(), coolDown = 0))
+            navController.navigate(
+                "createRoutine/exercises?added=${
+                    exercises.map { it.name }.joinToString(",")
+                }"
+            )
         }) {
-            Text("Agregar ejercicio")
+            if (exercises.size == 0) {
+                Text("Agregar ejercicios")
+            } else {
+                Text("Editar ejercicios")
+            }
         }
     }
 }
@@ -245,8 +273,6 @@ fun ExerciseCard(
     onUpdate: (Exercise) -> Unit,
     onDelete: () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -255,9 +281,6 @@ fun ExerciseCard(
         Column(modifier = Modifier.padding(16.dp)) {
 
             Row(modifier = Modifier.fillMaxWidth()) {
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = null)
-                }
 
                 Text(
                     exercise.name,
@@ -271,26 +294,6 @@ fun ExerciseCard(
 
                 IconButton(onClick = onDelete) {
                     Icon(Icons.Default.Delete, contentDescription = null, tint = Color.Red)
-                }
-            }
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                exercises.forEach { name ->
-                    DropdownMenuItem(
-                        text = { Text(name) },
-                        onClick = {
-                            onUpdate(
-                                exercise.copy(
-                                    name = name,
-                                    sets = listOf(Set(reps = 0, weight = 0))
-                                )
-                            )
-                            expanded = false
-                        }
-                    )
                 }
             }
 
@@ -376,4 +379,3 @@ fun ExerciseSet(
         }
     }
 }
-
